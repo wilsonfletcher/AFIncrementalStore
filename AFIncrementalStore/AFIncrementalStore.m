@@ -384,11 +384,26 @@ withAttributeAndRelationshipValuesFromManagedObject:(NSManagedObject *)managedOb
             [self insertOrUpdateObjectsFromRepresentations:relationshipRepresentation ofEntity:relationship.destinationEntity fromResponse:response withContext:context error:error completionBlock:^(NSArray *managedObjects, NSArray *backingObjects) {
                 if ([relationship isToMany]) {
                     if ([relationship isOrdered]) {
-                        [managedObject setValue:[NSOrderedSet orderedSetWithArray:managedObjects] forKey:relationship.name];
-                        [backingObject setValue:[NSOrderedSet orderedSetWithArray:backingObjects] forKey:relationship.name];
+                        
+                        NSMutableSet *relationshipManagedObjects = [managedObject mutableSetValueForKey:relationship.name];
+                        NSMutableSet *relationshipBackingObjects = [backingObject mutableSetValueForKey:relationship.name];
+                        
+                        [relationshipManagedObjects addObjectsFromArray:managedObjects];
+                        [relationshipBackingObjects addObjectsFromArray:backingObjects];
+
+                        [managedObject setValue:[NSOrderedSet orderedSetWithSet:relationshipManagedObjects] forKey:relationship.name];
+                        [backingObject setValue:[NSOrderedSet orderedSetWithSet:relationshipManagedObjects] forKey:relationship.name];
+                        
                     } else {
-                        [managedObject setValue:[NSSet setWithArray:managedObjects] forKey:relationship.name];
-                        [backingObject setValue:[NSSet setWithArray:backingObjects] forKey:relationship.name];
+                        
+                        NSMutableSet *relationshipManagedObjects = [managedObject mutableSetValueForKey:relationship.name];
+                        NSMutableSet *relationshipBackingObjects = [backingObject mutableSetValueForKey:relationship.name];
+                        
+                        [relationshipManagedObjects addObjectsFromArray:managedObjects];
+                        [relationshipBackingObjects addObjectsFromArray:backingObjects];
+                        
+                        [managedObject setValue:relationshipManagedObjects forKey:relationship.name];
+                        [backingObject setValue:relationshipBackingObjects forKey:relationship.name];
                     }
                 } else {
                     [managedObject setValue:[managedObjects lastObject] forKey:relationship.name];
