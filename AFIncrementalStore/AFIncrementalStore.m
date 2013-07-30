@@ -876,12 +876,23 @@ withAttributeAndRelationshipValuesFromManagedObject:(NSManagedObject *)managedOb
                         }
 
                         [childContext performBlockAndWait:^{
+
+                            NSSet *childObjects = [childContext registeredObjects];
+
                             AFSaveManagedObjectContextOrThrowInternalConsistencyException(childContext);
 
                             NSManagedObjectContext *backingContext = [self backingManagedObjectContext];
                             [backingContext performBlockAndWait:^{
                                 AFSaveManagedObjectContextOrThrowInternalConsistencyException(backingContext);
                             }];
+                            
+                            [context performBlockAndWait:^{
+                                for (NSManagedObject *childObject in childObjects) {
+                                    NSManagedObject *parentObject = [context objectWithID:childObject.objectID];
+                                    [context refreshObject:parentObject mergeChanges:NO];
+                                }
+                            }];
+
                         }];
 
                         [self notifyManagedObjectContext:context aboutRequestOperation:operation forNewValuesForRelationship:relationship forObjectWithID:objectID];
