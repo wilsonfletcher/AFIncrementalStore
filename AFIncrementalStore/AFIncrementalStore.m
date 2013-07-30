@@ -26,9 +26,6 @@
 
 NSString * const AFIncrementalStoreUnimplementedMethodException = @"com.alamofire.incremental-store.exceptions.unimplemented-method";
 
-/**
-[Axel:] explained in header 
- */
 NSString * const AFIncrementalStoreContextWillFetchRemoteValues = @"AFIncrementalStoreContextWillFetchRemoteValues";
 NSString * const AFIncrementalStoreContextWillSaveRemoteValues = @"AFIncrementalStoreContextWillSaveRemoteValues";
 NSString * const AFIncrementalStoreContextDidFetchRemoteValues = @"AFIncrementalStoreContextDidFetchRemoteValues";
@@ -68,9 +65,6 @@ inline NSString * AFResourceIdentifierFromReferenceObject(id referenceObject) {
     return [string hasPrefix:kAFReferenceObjectPrefix] ? [string substringFromIndex:[kAFReferenceObjectPrefix length]] : string;
 }
 
-/**
- [Axel:] not explained in header
- */
 static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException(NSManagedObjectContext *managedObjectContext) {
     NSError *error = nil;
     if (![managedObjectContext save:&error]) {
@@ -78,9 +72,6 @@ static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException
     }
 }
 
-/**
- [Axel:] extension/category on NSManagedObject to add resourceIdentifier property
- */
 @interface NSManagedObject (_AFIncrementalStore)
 @property (readwrite, nonatomic, copy, setter = af_setResourceIdentifier:) NSString *af_resourceIdentifier;
 @end
@@ -191,9 +182,6 @@ static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException
 
 #pragma mark -
 
-/**
- [Axel:] lazily creates backing context with backingPersistentStoreCoordinator
- */
 - (NSManagedObjectContext *)backingManagedObjectContext {
     if (!_backingManagedObjectContext) {
         _backingManagedObjectContext = [[NSManagedObjectContext alloc] initWithConcurrencyType:NSPrivateQueueConcurrencyType];
@@ -204,10 +192,6 @@ static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException
     return _backingManagedObjectContext;
 }
 
-/**
- [Axel:] returns the objectID of an entity with resourceId from _registeredObjectIDsByEntityNameAndNestedResourceIdentifier if in there
- or asks NSIncrementalStore for a new ObjectId based on the prefix and resourceId
- */
 - (NSManagedObjectID *)objectIDForEntity:(NSEntityDescription *)entity
                   withResourceIdentifier:(NSString *)resourceIdentifier
 {
@@ -230,10 +214,6 @@ static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException
     return objectID;
 }
 
-/**
- [Axel:] returns the backing object objectID of an entity with resourceId by getting the objectId for the entity with resId and looking up the backing object id in the _backingObjectIDByObjectID cache
- if not present in cache, do a fetch of entity with resId in backing context, set it in cache and return it
- */
 - (NSManagedObjectID *)objectIDForBackingObjectForEntity:(NSEntityDescription *)entity
                                   withResourceIdentifier:(NSString *)resourceIdentifier
 {
@@ -270,23 +250,6 @@ static inline void AFSaveManagedObjectContextOrThrowInternalConsistencyException
     return backingObjectID;
 }
 
-/**
- [Axel:] called from saveChangesRequest
- create mutableRelationshipValues dictionary
- enumerate over all managedObject relationships:
- - if relationship is fault or nil - do nothing
- - if to-many:
- - - create new mutableBackingRelationshipValue set (ordered or unordered)
- - - iterate over all relationshipManagedObjects in relationship
- - - - if relationshipManagedObjects has a temporary ID - do nothing
- - - - if can't find matching resID backing object - do nothing
- - - - ELSE add backingObject with ID from backing context to mutableBackingRelationshipValue
- - - add mutableBackingRelationshipValue to mutableRelationshipValues dictionary
- - if to-one:
- - - add backingObject with ID from backing context to mutableBackingRelationshipValue
- - add all mutableRelationshipValues to backingObject (relationships, dictionary of [sets of backingobjects(toMany)] or [backingObjects(toOne)])
- - add all attributes from managedObject
- */
 - (void)updateBackingObject:(NSManagedObject *)backingObject
 withAttributeAndRelationshipValuesFromManagedObject:(NSManagedObject *)managedObject
 {
@@ -340,37 +303,6 @@ withAttributeAndRelationshipValuesFromManagedObject:(NSManagedObject *)managedOb
 
 #pragma mark -
 
-/**
- [Axel:] called from newValueForRelationship:, executeFetchRequest: and recursively
- returns BOOL success/fail ?
- completionBlock array of managedObjects and backingObjects inserted/updated ?
- 
- get lastModified value from URL response headers
- iterate through all representations (JSON dictionaries from API response)
- - get resourceIdentifier for this iterations representation of entity (from RESTClient/subclass)
- - get attributes for this iterations representation of entity (from RESTClient/subclass)
- - get existing managedObject with resourceIdentifier from context
- - set attributes on managedObject
- - get backingObjectId for resourceIdentifier
- - if it exists get the backingObject from backingContext, otherwise insert new backingObject and get permanent id
- - set resourceIdentifier, lastModified and attributes on backingObject
- 
- - only if there was no backingObjectID - insert managedObject in context TODO: why?
- 
- - get all relationshipRepresentations (from RESTClient/subclass)
- - iterate over relationship names in relationshipRepresentationS:
- - - if no relationship or if optional and nil/null - do nothing
- - - if relationshipRepresentation for name is nil/null/empty - set nil on backingObject and managedObject
- - - recursively insertUpdateObjects with relationshipRepresentation and destinationEntity and on completion:
- - - - add managedObjects/backingObjects to relationship set ordered/unordered or set value
- - add managedObject to managedObjects
- - add backingObject to backingObjects
- 
- call completionBlock with managedObjects and backingObjects
- 
- return YES
- 
- */
 - (BOOL)insertOrUpdateObjectsFromRepresentations:(id)representationOrArrayOfRepresentations
                                         ofEntity:(NSEntityDescription *)entity
                                     fromResponse:(NSHTTPURLResponse *)response
